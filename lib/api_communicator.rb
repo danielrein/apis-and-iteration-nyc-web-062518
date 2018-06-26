@@ -2,32 +2,55 @@ require 'rest-client'
 require 'json'
 require 'pry'
 
-def get_character_movies_from_api(character)
-  #make the web request
+
+def create_hash_from_api
   all_characters = RestClient.get('http://www.swapi.co/api/people/')
-  character_hash = JSON.parse(all_characters)
+  JSON.parse(all_characters)
+end
+
+def show_characters_list
+  names_array = create_hash_from_api["results"].map { | character_hash | character_hash["name"] }
+  puts names_array
+end
+
+def get_character_info_from_api(character)
+  create_hash_from_api["results"].find { |char| char["name"].downcase == character }
+end
+
+def get_character_movies_from_character_hash(character_hash)
+  character_hash["films"].map do | film_url |
+    RestClient.get(film_url)
+  end    
+end
+
+def parse_films_array(films_array)
+  films_array.map { | film | JSON.parse(film) }
+end
+
+def create_character_movies_array(character)
+  create_hash_from_api
+  character_hash = get_character_info_from_api(character)
+  films_array = get_character_movies_from_character_hash(character_hash)
+  parse_films_array(films_array)
+end
+
+def show_character_movies_array(character)
+  puts create_character_movies_array(character)
+end
+
+def show_character_movies_titles(character)
+  puts "\n\n\nThe films in which #{character} appeared are:\n"
+  create_character_movies_array(character).each { |movie| puts movie["title"]}
+end
+
+def show_character_movies_info(films_array)
+
+  films_parsed = parse_films_array(films_array)
   
-  # iterate over the character hash to find the collection of `films` for the given
-  #   `character`
-  # collect those film API urls, make a web request to each URL to get the info
-  #  for that film
-  # return value of this method should be collection of info about each film.
-  #  i.e. an array of hashes in which each hash reps a given film
-  # this collection will be the argument given to `parse_character_movies`
-  #  and that method will do some nice presentation stuff: puts out a list
-  #  of movies by title. play around with puts out other info about a given film.
+  films_parsed.map do | film_hash |
+    puts "\n\n\n\n***********************************\n\n\n\n"
+    film_hash.keys.map do | key |
+      puts "\n#{key}: #{film_hash[key]}"
+    end
+  end
 end
-
-def parse_character_movies(films_hash)
-  # some iteration magic and puts out the movies in a nice list
-end
-
-def show_character_movies(character)
-  films_hash = get_character_movies_from_api(character)
-  parse_character_movies(films_hash)
-end
-
-## BONUS
-
-# that `get_character_movies_from_api` method is probably pretty long. Does it do more than one job?
-# can you split it up into helper methods?
