@@ -2,52 +2,51 @@ require 'rest-client'
 require 'json'
 require 'pry'
 
-
-def create_hash_from_api
+def data_hash
   all_characters = RestClient.get('http://www.swapi.co/api/people/')
   JSON.parse(all_characters)
 end
 
-def show_characters_list
-  names_array = create_hash_from_api["results"].map { | character_hash | character_hash["name"] }
-  puts names_array
+def characters_data
+  data_hash["results"]
 end
 
-def get_character_info_from_api(character)
-  create_hash_from_api["results"].find { |char| char["name"].downcase == character }
+def character_names
+  characters_data.map { | character_info | character_info["name"] }
 end
 
-def get_character_movies_from_character_hash(character_hash)
-  character_hash["films"].map do | film_url |
-    RestClient.get(film_url)
-  end    
+def get_character_info(name)
+  characters_data.find { | character_info | character_info["name"].downcase == name }
 end
 
-def parse_films_array(films_array)
-  films_array.map { | film | JSON.parse(film) }
+def get_character_films_urls(character_info)
+  character_info["films"].map { | url | RestClient.get(url) }
 end
 
-def create_character_movies_array(character)
-  create_hash_from_api
-  character_hash = get_character_info_from_api(character)
-  films_array = get_character_movies_from_character_hash(character_hash)
-  parse_films_array(films_array)
+def parse_array(array)
+  array.map { | element | JSON.parse(element) }
 end
 
-def show_character_movies_array(character)
-  puts create_character_movies_array(character)
+def create_character_films_array(name)
+  character_info = get_character_info(name)
+  films = get_character_films_urls(character_info)
+  parse_array(films)
 end
 
-def show_character_movies_titles(character)
+def show_character_list
+  puts character_names
+end
+
+def show_character_films_titles(character)
   puts "\n\n\nThe films in which #{character} appeared are:\n"
-  create_character_movies_array(character).each { |movie| puts movie["title"]}
+  create_character_films_array(character).each { |film| puts film["title"]}
 end
 
-def show_character_movies_info(films_array)
+def show_character_films_info(name)
 
-  films_parsed = parse_films_array(films_array)
-  
-  films_parsed.map do | film_hash |
+  films = create_character_films_array(name)
+
+  films.map do | film_hash |
     puts "\n\n\n\n***********************************\n\n\n\n"
     film_hash.keys.map do | key |
       puts "\n#{key}: #{film_hash[key]}"
